@@ -8,10 +8,17 @@ metadata:
 spec:
   clusterNetwork: {{ .Values.kubeNetwork | toYaml | nindent 4 }}
   controlPlaneRef:
+  {{- if eq .Values.controlPlane.provider "hostedControlPlane" }}
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+    kind: HostedControlPlane
+    name: {{ include "openstack-cluster.componentName" (list . "control-plane") }}
+    namespace: {{ .Release.Namespace }}
+  {{- else }}
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane
     name: {{ include "openstack-cluster.componentName" (list . "control-plane") }}
     namespace: {{ .Release.Namespace }}
+  {{- end }}
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: OpenStackCluster

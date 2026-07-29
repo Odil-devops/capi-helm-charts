@@ -159,6 +159,7 @@ clusterConfiguration:
         pathType: Directory
 {{- end }}
 
+{{- if ne .Values.controlPlane.provider "hostedControlPlane" }}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
@@ -211,3 +212,4 @@ spec:
     toYaml |
     nindent 4
   }}
+{{- end }}
