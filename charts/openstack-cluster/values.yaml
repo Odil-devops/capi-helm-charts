@@ -262,6 +262,28 @@ azimuthAuthorizationWebhook:
 
 # Settings for the control plane
 controlPlane:
+  # Which control-plane provider to render.
+  #   - "kubeadm" (default): traditional CAPI KubeadmControlPlane with dedicated CP VMs
+  #   - "hostedControlPlane": run apiserver/etcd/scheduler as pods on the management cluster
+  #     via cluster-api-provider-hosted-control-plane (CAPHCP). No CP VMs in this cluster.
+  #     Requires CAPHCP + Gateway API + a TLS-passthrough Gateway on the management cluster.
+  provider: kubeadm
+
+  # Configuration for hostedControlPlane mode (ignored unless provider = hostedControlPlane)
+  hostedControlPlane:
+    # Number of apiserver replicas (etcd is a separate StatefulSet managed by CAPHCP)
+    replicas: 3
+    # Reference to the Gateway (Gateway API) used for TLS passthrough of the tenant apiserver
+    gateway:
+      name: hcp-gateway
+      namespace: envoy-gateway-system
+    # Endpoint configuration. The public FQDN is derived as:
+    #   <cluster-name>-<hash8>.<wildcardDomain>
+    endpoint:
+      # The wildcard DNS domain that resolves to your edge SNI-passthrough proxy public IP
+      # e.g. "k8s.example.com" — override to your production domain via helm --set
+      wildcardDomain: k8s.example.com
+
   # The failure domains to use for control plane nodes
   # If given, should be a list of availability zones
   # Only used when omitFailureDomain = false
