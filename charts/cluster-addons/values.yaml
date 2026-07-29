@@ -64,6 +64,12 @@ csi:
 openstack:
   # Indicates if the OpenStack integrations should be enabled
   enabled: false
+  # Whether OpenStack integration workloads (CCM, CSI) should be scheduled
+  # ONLY on control-plane nodes. Default true matches the traditional CAPI
+  # cluster layout with dedicated control-plane VMs.
+  # Set to false for HCP-mode clusters (no control-plane VMs on this cluster):
+  # workloads then schedule on any node (i.e. worker nodes).
+  controlPlaneOnly: true
   # The target namespace for the OpenStack integrations
   targetNamespace: openstack-system
   # cloud-config options for the OpenStack integrations
