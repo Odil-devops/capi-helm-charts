@@ -51,6 +51,13 @@ spec:
   {{- end }}
   {{- end }}
   {{- end }}
+  {{- if eq .Values.controlPlane.provider "hostedControlPlane" }}
+  # HCP mode: control plane runs as pods on the management cluster.
+  # CAPO must not create an apiserver LoadBalancer or attach a FloatingIP —
+  # the tenant-facing endpoint is owned by CAPHCP and reached via a shared
+  # TLS-passthrough Gateway (see the TLSRoute rendered by this chart).
+  disableAPIServerFloatingIP: true
+  {{- else }}
   {{- with .Values.apiServer }}
   {{- if .enableLoadBalancer }}
   apiServerLoadBalancer:
@@ -73,6 +80,7 @@ spec:
   apiServerFixedIP: {{ . }}
   {{- end }}
   apiServerPort: {{ .port }}
+  {{- end }}
   {{- end }}
   {{- with .Values.controlPlane }}
   {{- if .omitFailureDomain }}
