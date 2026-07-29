@@ -612,3 +612,18 @@ Creates a list of security group rules to apply to worker nodes
 {{- toYaml $msecgroups.workerNodesSecurityGroupRules }}
 {{- end }}
 {{- end }}
+
+{{/*
+Public FQDN for the tenant control-plane apiserver when using HCP mode.
+Derived deterministically from the cluster name so that:
+  - it is stable across upgrades of the same cluster
+  - two clusters with the same short name (in different projects) don't collide,
+    because the 8-char hash of the (globally-unique) release name diverges.
+
+Format: <cluster-name>-<hash8>.<wildcardDomain>
+*/}}
+{{- define "openstack-cluster.hcp.hostname" -}}
+{{- $name := include "openstack-cluster.clusterName" . -}}
+{{- $hash := substr 0 8 (sha256sum $name) -}}
+{{- printf "%s-%s.%s" $name $hash .Values.controlPlane.hostedControlPlane.endpoint.wildcardDomain -}}
+{{- end }}

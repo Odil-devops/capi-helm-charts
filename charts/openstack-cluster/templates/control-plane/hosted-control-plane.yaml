@@ -1,0 +1,23 @@
+{{- if eq .Values.controlPlane.provider "hostedControlPlane" }}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: HostedControlPlane
+metadata:
+  name: {{ include "openstack-cluster.componentName" (list . "control-plane") }}
+  labels: {{ include "openstack-cluster.componentLabels" (list . "control-plane") | nindent 4 }}
+  annotations:
+    # Let Cluster API clean up the control plane resource on Cluster deletion.
+    # Deleting it ourselves, which CAPI is not expecting, can cause race conditions.
+    helm.sh/resource-policy: keep
+spec:
+  version: v{{
+    .Values.controlPlane.kubernetesVersion |
+      default .Values.kubernetesVersion |
+      required "One of .Values.controlPlane.kubernetesVersion or .Values.kubernetesVersion is required" |
+      trimPrefix "v"
+  }}
+  replicas: {{ .Values.controlPlane.hostedControlPlane.replicas }}
+  gateway:
+    name: {{ .Values.controlPlane.hostedControlPlane.gateway.name }}
+    namespace: {{ .Values.controlPlane.hostedControlPlane.gateway.namespace }}
+{{- end }}

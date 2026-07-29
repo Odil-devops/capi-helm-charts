@@ -1,0 +1,20 @@
+{{- if eq .Values.controlPlane.provider "hostedControlPlane" }}
+---
+# Routes SNI-passthrough TLS traffic for this cluster's public FQDN to the
+# HostedControlPlane apiserver Service (created by CAPHCP as `s-<hcp-name>`).
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: {{ include "openstack-cluster.componentName" (list . "control-plane") }}
+  labels: {{ include "openstack-cluster.componentLabels" (list . "control-plane") | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.controlPlane.hostedControlPlane.gateway.name }}
+      namespace: {{ .Values.controlPlane.hostedControlPlane.gateway.namespace }}
+  hostnames:
+    - {{ include "openstack-cluster.hcp.hostname" . | quote }}
+  rules:
+    - backendRefs:
+        - name: s-{{ include "openstack-cluster.componentName" (list . "control-plane") }}
+          port: 6443
+{{- end }}
