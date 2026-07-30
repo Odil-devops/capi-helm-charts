@@ -270,19 +270,24 @@ controlPlane:
   provider: kubeadm
 
   # Configuration for hostedControlPlane mode (ignored unless provider = hostedControlPlane)
+  #
+  # CAPHCP owns the tenant apiserver endpoint:
+  #   - It derives the public FQDN from the referenced Gateway's listener hostname
+  #     as `<hcp-name>.<hcp-namespace>.<listener-domain>` — e.g. a HostedControlPlane
+  #     named `foo-control-plane` in namespace `hcp-tenants` behind a Gateway listener
+  #     with hostname `*.k8s.example.com` gets `foo-control-plane.hcp-tenants.k8s.example.com`.
+  #   - It creates the TLSRoute(s) (apiserver + konnectivity) attached to that Gateway
+  #     itself. This chart does NOT render a TLSRoute — CAPHCP owns that resource.
+  #   - It sets Cluster.spec.controlPlaneEndpoint accordingly, which becomes the SAN
+  #     in the apiserver cert and the server URL in the generated kubeconfig.
   hostedControlPlane:
     # Number of apiserver replicas (etcd is a separate StatefulSet managed by CAPHCP)
     replicas: 3
-    # Reference to the Gateway (Gateway API) used for TLS passthrough of the tenant apiserver
+    # Reference to the Gateway used for TLS-passthrough of the tenant apiserver.
+    # The Gateway listener's hostname determines the public FQDN suffix.
     gateway:
       name: hcp-gateway
       namespace: envoy-gateway-system
-    # Endpoint configuration. The public FQDN is derived as:
-    #   <cluster-name>-<hash8>.<wildcardDomain>
-    endpoint:
-      # The wildcard DNS domain that resolves to your edge SNI-passthrough proxy public IP
-      # e.g. "k8s.example.com" — override to your production domain via helm --set
-      wildcardDomain: k8s.example.com
 
   # The failure domains to use for control plane nodes
   # If given, should be a list of availability zones
@@ -532,6 +537,12 @@ nodeGroups:
 
 # Configuration for the cluster autoscaler
 autoscaler:
+  # Whether to render the cluster-autoscaler Deployment + RBAC.
+  # Default true preserves the previous chart behaviour. Set to false when
+  # autoscaling is not desired (e.g. HCP-mode clusters bootstrapped without
+  # addons where workers can't reach Ready and the autoscaler would
+  # runaway-scale on pending kube-system pods).
+  enabled: true
   # The image to use for the autoscaler component
   image:
     repository: registry.k8s.io/autoscaling/cluster-autoscaler
