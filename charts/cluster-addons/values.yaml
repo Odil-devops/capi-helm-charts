@@ -10,6 +10,11 @@ cni:
   enabled: true
   # The CNI to deploy - supported values are calico or cilium
   type: calico
+  # Pin CNI operator/controller pods to control-plane nodes. Default true
+  # matches the traditional CAPI layout with dedicated CP VMs. Set to false
+  # for HCP-mode clusters where the workload has no CP nodes — the operator
+  # then schedules on worker nodes.
+  controlPlaneOnly: true
   # Settings for the calico CNI
   # See https://projectcalico.docs.tigera.io/getting-started/kubernetes/helm
   calico:
@@ -19,9 +24,7 @@ cni:
       version: v3.31.5
     release:
       namespace: tigera-operator
-      values:
-        nodeSelector:
-          node-role.kubernetes.io/control-plane: ""
+      values: {}
     # Nova metadata service
     # See https://docs.openstack.org/nova/latest/user/metadata.html#the-metadata-service
     globalNetworkPolicy:

@@ -9,7 +9,32 @@ metadata:
     addons.stackhpc.com/watch: ""
 stringData:
   defaults: |
+    {{- if .Values.cni.controlPlaneOnly }}
+    # Pin the tigera-operator pod to control-plane nodes.
+    nodeSelector:
+      node-role.kubernetes.io/control-plane: ""
+    {{- else }}
+    # HCP-mode: no CP nodes; run tigera-operator on any worker.
+    # Tolerate CAPI/CCM taints because CNI is what transitions the node to
+    # Ready — if we can't schedule until then, we deadlock.
+    nodeSelector: {}
+    tolerations:
+      - key: node.cloudprovider.kubernetes.io/uninitialized
+        value: "true"
+        effect: NoSchedule
+      - key: node.cluster.x-k8s.io/uninitialized
+        effect: NoSchedule
+      - key: node.kubernetes.io/not-ready
+        effect: NoSchedule
+    {{- end }}
     installation:
+      {{- if not .Values.cni.controlPlaneOnly }}
+      # Pods reconciled BY tigera-operator (calico-apiserver, kube-controllers,
+      # goldmane, whisker) default to control-plane nodeSelector unless we
+      # override here. In HCP mode we have no CP nodes.
+      controlPlaneNodeSelector:
+        kubernetes.io/os: linux
+      {{- end }}
       nodeMetricsPort: 9091
       typhaMetricsPort: 9093
       calicoNetwork:
