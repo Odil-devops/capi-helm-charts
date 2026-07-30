@@ -25,6 +25,27 @@ stringData:
           - name: cloud-config
             mountPath: /etc/kubernetes
             readOnly: true
+        controllerPlugin:
+          {{- if .Values.openstack.controlPlaneOnly }}
+          nodeSelector:
+            node-role.kubernetes.io/control-plane: ""
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              effect: NoSchedule
+          {{- else }}
+          # HCP-mode: no CP nodes exist; the controller runs on any worker.
+          # Still needs to tolerate CAPI/CCM taints so it can come up on a
+          # fresh node before it transitions to Ready.
+          nodeSelector: {}
+          tolerations:
+            - key: node.cloudprovider.kubernetes.io/uninitialized
+              value: "true"
+              effect: NoSchedule
+            - key: node.cluster.x-k8s.io/uninitialized
+              effect: NoSchedule
+            - key: node.kubernetes.io/not-ready
+              effect: NoSchedule
+          {{- end }}
       provisioner:
         topology: "false"
     secret:

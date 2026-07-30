@@ -101,15 +101,7 @@ openstack:
       repo: https://kubernetes.github.io/cloud-provider-openstack
       name: openstack-cinder-csi
       version: 2.35.0
-    values:
-      csi:
-        plugin:
-          controllerPlugin:
-            nodeSelector:
-              node-role.kubernetes.io/control-plane: ""
-            tolerations:
-              - key: node-role.kubernetes.io/control-plane
-                effect: NoSchedule
+    values: {}
     # Definition of the default storage class for Cinder CSI
     defaultStorageClass:
       # Indicates if the storage class should be enabled
