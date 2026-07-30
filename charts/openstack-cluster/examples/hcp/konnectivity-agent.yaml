@@ -1,0 +1,64 @@
+---
+# konnectivity-agent DaemonSet — deploys the agent side of the apiserver-to-node
+# reverse tunnel on every worker in the tenant cluster. Required when the
+# apiserver runs off-cluster (HCP mode) and needs to reach kubelet for
+# `kubectl logs / exec / port-forward` and admission webhooks.
+#
+# Replace KONNECTIVITY_HOST with the FQDN advertised by the CAPHCP-managed
+# TLSRoute — typically `konnectivity.<cluster>.<hcp-namespace>.<wildcard>`.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: konnectivity-agent
+  namespace: kube-system
+  labels:
+    k8s-app: konnectivity-agent
+spec:
+  selector:
+    matchLabels:
+      k8s-app: konnectivity-agent
+  template:
+    metadata:
+      labels:
+        k8s-app: konnectivity-agent
+    spec:
+      priorityClassName: system-cluster-critical
+      tolerations:
+        - operator: Exists
+      hostNetwork: true
+      containers:
+        - name: konnectivity-agent
+          image: registry.k8s.io/kas-network-proxy/proxy-agent:v0.32.0
+          args:
+            - --logtostderr=true
+            - --ca-cert=/etc/konnectivity/ca.crt
+            - --agent-cert=/etc/konnectivity/tls.crt
+            - --agent-key=/etc/konnectivity/tls.key
+            - --proxy-server-host=KONNECTIVITY_HOST
+            - --proxy-server-port=443
+            - --sync-forever=true
+            - --agent-identifiers=host=$(HOST_IP)
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 30Mi
+          volumeMounts:
+            - name: certs
+              mountPath: /etc/konnectivity
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              port: 8093
+              path: /healthz
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+      volumes:
+        - name: certs
+          secret:
+            secretName: konnectivity-agent-certs
