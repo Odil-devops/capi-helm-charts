@@ -5,6 +5,24 @@
 [CAPHCP](https://github.com/teutonet/cluster-api-provider-hosted-control-plane)
 instead of dedicated CP VMs.
 
+## Install command
+
+The install has to serialize the creation of ~15 CAPI/CAPHCP/CAPO objects
+plus a dozen addon HelmReleases and Manifests through per-resource
+validating webhooks. On a modestly-sized management cluster this
+routinely exceeds `helm install`'s default 5m client timeout, leaving
+the release in `pending-install` and requiring a `helm ls` + release
+secret cleanup before you can retry.
+
+Always use `--timeout 15m` for HCP-mode installs:
+
+```bash
+helm install <cluster> ./openstack-cluster \
+  -n hcp-tenants \
+  -f values.yaml \
+  --timeout 15m
+```
+
 ## Prerequisites (on the management cluster)
 
 - CAPHCP installed
