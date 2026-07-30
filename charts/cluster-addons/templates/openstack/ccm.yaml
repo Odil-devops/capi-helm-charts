@@ -27,6 +27,17 @@ stringData:
         effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         effect: NoSchedule
+      # CAPI marks new nodes with this taint until the infra provider clears it.
+      # Without tolerating it, the CCM DaemonSet can't schedule on a fresh node —
+      # and the CCM is precisely what clears the sibling
+      # `node.cloudprovider.kubernetes.io/uninitialized` taint. Chicken-and-egg
+      # deadlock: the node stays uninitialized forever.
+      - key: node.cluster.x-k8s.io/uninitialized
+        effect: NoSchedule
+      # Also tolerate not-ready so the CCM can come up before the CNI does —
+      # otherwise nothing ever transitions the node to Ready in the first place.
+      - key: node.kubernetes.io/not-ready
+        effect: NoSchedule
     {{- if .Values.reloader.enabled }}
     commonAnnotations:
       secret.reloader.stakater.com/reload: cloud-config
