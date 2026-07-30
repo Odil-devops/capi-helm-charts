@@ -1,4 +1,4 @@
-{{- if and .Values.openstack.enabled .Values.openstack.ccm.enabled }}
+{{- if and .Values.openstack.enabled .Values.openstack.ccm.enabled (not .Values.openstack.ccm.hosted) }}
 ---
 apiVersion: v1
 kind: Secret

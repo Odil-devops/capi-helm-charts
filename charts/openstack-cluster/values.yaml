@@ -288,6 +288,38 @@ controlPlane:
     gateway:
       name: hcp-gateway
       namespace: envoy-gateway-system
+    # OpenStack CCM deployed alongside the HCP pods on the management cluster
+    # (matching the EKS/GKE/AKS/HyperShift pattern where the cloud controller
+    # lives on the provider-managed control plane, not on customer workers).
+    # See examples/hcp/README.md for the full architecture.
+    ccm:
+      # Image to run for the OpenStack CCM. The image tag should match the
+      # tenant Kubernetes minor version.
+      image:
+        repository: registry.k8s.io/provider-os/openstack-cloud-controller-manager
+        # If unset, chart falls back to v<kubernetesVersion minor>.0
+        tag:
+        pullPolicy: IfNotPresent
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 128Mi
+        limits:
+          memory: 256Mi
+      # Cloud-config knobs consumed by the CCM. Passed through to [LoadBalancer]
+      # and [Networking] sections of cloud.conf.
+      cloudConfig:
+        loadBalancer:
+          maxSharedLB: 1
+          manageSecurityGroups: true
+          # If set, becomes floating-network-id in cloud.conf so type=LoadBalancer
+          # Services can allocate FIPs. Leave empty for internal-only LBs.
+          floatingNetworkId:
+          # Set true to have the CCM request an internal (non-FIP) VIP for
+          # every type=LoadBalancer Service. Useful when the tenant network
+          # doesn't have external reachability.
+          internalLB: false
 
   # The failure domains to use for control plane nodes
   # If given, should be a list of availability zones

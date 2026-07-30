@@ -89,6 +89,14 @@ openstack:
     # By default, the CCM is enabled if the OpenStack integrations are enabled
     # See https://github.com/kubernetes/cloud-provider-openstack/blob/master/charts/openstack-cloud-controller-manager/values.yaml
     enabled: true
+    # If true, do NOT render this workload-side CCM HelmRelease.
+    # The CCM is expected to be deployed elsewhere (typically on the management
+    # cluster, next to the HostedControlPlane pods) — matching the EKS/GKE/AKS
+    # /HyperShift pattern where cloud provider integration lives on the
+    # provider-owned control plane, not on customer worker nodes.
+    # The parent openstack-cluster chart auto-sets this to true when
+    # controlPlane.provider=hostedControlPlane.
+    hosted: false
     chart:
       repo: https://kubernetes.github.io/cloud-provider-openstack
       name: openstack-cloud-controller-manager

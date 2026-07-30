@@ -1,0 +1,113 @@
+{{- if eq .Values.controlPlane.provider "hostedControlPlane" }}
+{{- $cluster := include "openstack-cluster.clusterName" . -}}
+{{- $ccm := .Values.controlPlane.hostedControlPlane.ccm -}}
+{{- $ver := .Values.controlPlane.kubernetesVersion | default .Values.kubernetesVersion | trimPrefix "v" -}}
+{{- $minor := regexReplaceAll "^([0-9]+)\\.([0-9]+).*$" $ver "${1}.${2}" -}}
+{{- $imageTag := $ccm.image.tag | default (printf "v%s.0" $minor) -}}
+---
+# cloud.conf consumed by the mgmt-cluster-side OpenStack CCM Deployment.
+# Distinct from the workload-cluster cloud-config Secret rendered by
+# cluster-addons/openstack/cloud-config.yaml (which is for Cinder CSI on
+# tenant workers) — this one is scoped to the CCM here on the management
+# cluster and never leaves it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $cluster }}-cloud-config-mgmt
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "openstack-cluster.componentLabels" (list . "openstack-ccm") | nindent 4 }}
+data:
+  cloud.conf: |
+    [Global]
+    use-clouds = true
+    clouds-file = /etc/openstack/secret/clouds.yaml
+    cloud = openstack
+
+    [LoadBalancer]
+    max-shared-lb = {{ $ccm.cloudConfig.loadBalancer.maxSharedLB }}
+    manage-security-groups = {{ $ccm.cloudConfig.loadBalancer.manageSecurityGroups }}
+    {{- with $ccm.cloudConfig.loadBalancer.floatingNetworkId }}
+    floating-network-id = {{ . }}
+    {{- end }}
+    {{- if $ccm.cloudConfig.loadBalancer.internalLB }}
+    internal-lb = true
+    {{- end }}
+
+    [BlockStorage]
+    ignore-volume-az = true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $cluster }}-openstack-ccm
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "openstack-cluster.componentLabels" (list . "openstack-ccm") | nindent 4 }}
+spec:
+  replicas: {{ $ccm.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {{ include "openstack-cluster.componentSelectorLabels" (list . "openstack-ccm") | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "openstack-cluster.componentSelectorLabels" (list . "openstack-ccm") | nindent 8 }}
+    spec:
+      priorityClassName: system-cluster-critical
+      # CCM authenticates to the tenant apiserver via a mounted kubeconfig,
+      # not via a ServiceAccount token on this (management) cluster.
+      automountServiceAccountToken: false
+      containers:
+        - name: cloud-controller-manager
+          image: {{ printf "%s:%s" $ccm.image.repository $imageTag | quote }}
+          imagePullPolicy: {{ $ccm.image.pullPolicy }}
+          command:
+            - /usr/bin/openstack-cloud-controller-manager
+          args:
+            - --v=1
+            - --cloud-config=/etc/openstack/config/cloud.conf
+            - --cloud-provider=openstack
+            - --kubeconfig=/etc/kubernetes/kubeconfig/value
+            - --cluster-name={{ $cluster }}
+            - --use-service-account-credentials=false
+            - --configure-cloud-routes=false
+            - --bind-address=127.0.0.1
+            - --leader-elect=true
+            # Leader election happens on the workload apiserver, in kube-system.
+            - --leader-elect-resource-namespace=kube-system
+            - --leader-elect-lease-duration=137s
+            - --leader-elect-renew-deadline=107s
+            - --leader-elect-retry-period=26s
+          resources: {{ toYaml $ccm.resources | nindent 12 }}
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /etc/kubernetes/kubeconfig
+              readOnly: true
+            - name: cloud-config
+              mountPath: /etc/openstack/config
+              readOnly: true
+            - name: cloud-credentials
+              mountPath: /etc/openstack/secret
+              readOnly: true
+      volumes:
+        - name: kubeconfig
+          secret:
+            # CAPHCP creates this Secret; key `value` holds the workload
+            # admin kubeconfig whose server URL points to the in-cluster
+            # apiserver Service s-<hcp-name>.<hcp-namespace>.svc:443.
+            secretName: {{ $cluster }}-kubeconfig
+            defaultMode: 0640
+        - name: cloud-config
+          configMap:
+            name: {{ $cluster }}-cloud-config-mgmt
+            items:
+              - key: cloud.conf
+                path: cloud.conf
+            defaultMode: 0644
+        - name: cloud-credentials
+          secret:
+            secretName: {{ include "openstack-cluster.cloudCredentialsSecretName" . }}
+            items:
+              - key: clouds.yaml
+                path: clouds.yaml
+            defaultMode: 0640
+{{- end }}
