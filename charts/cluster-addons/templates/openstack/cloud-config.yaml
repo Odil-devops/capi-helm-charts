@@ -24,7 +24,7 @@ spec:
             use-clouds=true
             clouds-file=/etc/config/clouds.yaml
             cloud=openstack
-        {%- if "cacert" in cloud_identity.data %}
+        {%- if cloud_identity.data.get("cacert") %}
             ca-file=/etc/config/cacert
         {%- else %}
             tls-insecure=true
