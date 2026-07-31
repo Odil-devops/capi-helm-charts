@@ -60,8 +60,14 @@ spec:
         - name: cloud-controller-manager
           image: {{ printf "%s:%s" $ccm.image.repository $imageTag | quote }}
           imagePullPolicy: {{ $ccm.image.pullPolicy }}
+          # The image ENTRYPOINT is /go-runner (a logging wrapper) which
+          # consumes -log-file/-redirect-stderr as its OWN flags and rejects
+          # anything else with 'flag provided but not defined'. Override the
+          # entrypoint and exec the CCM binary directly so our args reach it.
+          # HyperShift uses /usr/bin/... for the OpenShift image build; the
+          # upstream registry.k8s.io/provider-os build installs to /bin/.
           command:
-            - /usr/bin/openstack-cloud-controller-manager
+            - /bin/openstack-cloud-controller-manager
           args:
             - --v=1
             - --cloud-config=/etc/openstack/config/cloud.conf
