@@ -16,6 +16,15 @@ metadata:
   name: {{ $cluster }}-cloud-config-mgmt
   namespace: {{ .Release.Namespace }}
   labels: {{ include "openstack-cluster.componentLabels" (list . "openstack-ccm") | nindent 4 }}
+  # Ties this ConfigMap's lifecycle to the Cluster resource. `kubectl delete
+  # cluster tenant-N` cascades through here so we don't leak mgmt-side state.
+  ownerReferences:
+    - apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      name: {{ $cluster }}
+      uid: {{ (lookup "cluster.x-k8s.io/v1beta1" "Cluster" .Release.Namespace $cluster).metadata.uid }}
+      controller: false
+      blockOwnerDeletion: false
 data:
   cloud.conf: |
     [Global]
@@ -42,6 +51,15 @@ metadata:
   name: {{ $cluster }}-openstack-ccm
   namespace: {{ .Release.Namespace }}
   labels: {{ include "openstack-cluster.componentLabels" (list . "openstack-ccm") | nindent 4 }}
+  # Cascade delete this Deployment when the Cluster goes away, matching how
+  # CAPI cascades the CAPHCP-owned HCP pods and the CAPO OpenStackCluster.
+  ownerReferences:
+    - apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      name: {{ $cluster }}
+      uid: {{ (lookup "cluster.x-k8s.io/v1beta1" "Cluster" .Release.Namespace $cluster).metadata.uid }}
+      controller: false
+      blockOwnerDeletion: false
 spec:
   replicas: {{ $ccm.replicas }}
   strategy:
