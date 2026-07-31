@@ -6,6 +6,25 @@
 #
 # Replace KONNECTIVITY_HOST with the FQDN advertised by the CAPHCP-managed
 # TLSRoute — typically `konnectivity.<cluster>.<hcp-namespace>.<wildcard>`.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: konnectivity-agent
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:konnectivity-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: konnectivity-agent
+    namespace: kube-system
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -23,6 +42,7 @@ spec:
         k8s-app: konnectivity-agent
     spec:
       priorityClassName: system-cluster-critical
+      serviceAccountName: konnectivity-agent
       tolerations:
         - operator: Exists
       hostNetwork: true
@@ -32,12 +52,14 @@ spec:
           args:
             - --logtostderr=true
             - --ca-cert=/etc/konnectivity/ca.crt
-            - --agent-cert=/etc/konnectivity/tls.crt
-            - --agent-key=/etc/konnectivity/tls.key
             - --proxy-server-host=KONNECTIVITY_HOST
             - --proxy-server-port=443
             - --sync-forever=true
             - --agent-identifiers=host=$(HOST_IP)
+            # HCP-mode: konnectivity-server authenticates the agent by a
+            # projected ServiceAccount token (audience matches the
+            # apiserver's --authentication-audience flag). No client cert.
+            - --service-account-token-path=/var/run/secrets/tokens/konnectivity-agent-token
           env:
             - name: HOST_IP
               valueFrom:
@@ -48,8 +70,11 @@ spec:
               cpu: 50m
               memory: 30Mi
           volumeMounts:
-            - name: certs
+            - name: konnectivity-ca
               mountPath: /etc/konnectivity
+              readOnly: true
+            - name: token
+              mountPath: /var/run/secrets/tokens
               readOnly: true
           livenessProbe:
             httpGet:
@@ -59,6 +84,16 @@ spec:
             initialDelaySeconds: 15
             timeoutSeconds: 15
       volumes:
-        - name: certs
+        - name: konnectivity-ca
           secret:
             secretName: konnectivity-agent-certs
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: konnectivity-agent-token
+                  audience: system:konnectivity-server
+                  expirationSeconds: 3600

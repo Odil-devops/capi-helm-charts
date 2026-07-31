@@ -44,19 +44,20 @@ deploy the agent yourself using [`konnectivity-agent.yaml`](./konnectivity-agent
 after the workload cluster reaches `Provisioned` and the node is Ready:
 
 ```bash
-# On mgmt cluster: extract kubeconfig + CA that CAPHCP already generated.
-kubectl -n hcp-tenants get secret <cluster>-konnectivity-client -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/konn-ca.crt
-kubectl -n hcp-tenants get secret <cluster>-konnectivity-client -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/konn-client.crt
-kubectl -n hcp-tenants get secret <cluster>-konnectivity-client -o jsonpath='{.data.tls\.key}' | base64 -d > /tmp/konn-client.key
+# On mgmt cluster: extract the CA that CAPHCP generated. We only need the
+# CA — the agent authenticates by ServiceAccount token, not a client cert
+# (CAPHCP's apiserver was started with --agent-service-account, which
+# switches konnectivity-server to token auth).
+kubectl -n hcp-tenants get secret <cluster>-konnectivity-client \
+  -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/konn-ca.crt
 
 # Apply to the workload cluster.
 kubectl --kubeconfig=<workload-kubeconfig> -n kube-system create secret generic konnectivity-agent-certs \
-  --from-file=ca.crt=/tmp/konn-ca.crt \
-  --from-file=tls.crt=/tmp/konn-client.crt \
-  --from-file=tls.key=/tmp/konn-client.key
+  --from-file=ca.crt=/tmp/konn-ca.crt
 
 # Substitute your FQDN for konnectivity (from the CAPHCP-managed TLSRoute)
-# and apply konnectivity-agent.yaml.
+# and apply konnectivity-agent.yaml. The manifest also creates the
+# ServiceAccount + ClusterRoleBinding the agent uses to authenticate.
 KONN_HOST=konnectivity.<cluster>.<hcp-namespace>.k8s.example.com
 sed "s|KONNECTIVITY_HOST|$KONN_HOST|g" konnectivity-agent.yaml \
   | kubectl --kubeconfig=<workload-kubeconfig> apply -f -
