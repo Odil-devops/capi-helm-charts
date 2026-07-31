@@ -581,22 +581,44 @@ autoscaler:
     pullPolicy: IfNotPresent
     tag: v1.30.4
   imagePullSecrets: []
-  # Any extra args for the autoscaler
+  # Any extra args for the autoscaler.
+  #
+  # Defaults tuned for managed-Kubernetes use:
+  #   - Runaway protection: if too many nodes are NotReady (usually because
+  #     CNI/CSI/CCM addons broke on freshly-provisioned VMs) the autoscaler
+  #     STOPS scaling up. Otherwise every NotReady node makes autoscaler
+  #     "provision more capacity" and it can burn dozens of Nova VMs before
+  #     an operator notices. We saw this in the first HCP test — 34 VMs in
+  #     one night from a broken CNI.
+  #   - Scale-down thresholds slightly more conservative than upstream so
+  #     we don't churn worker VMs on brief idle windows.
   extraArgs:
-    # Make sure logs go to stderr
     logtostderr: true
     stderrthreshold: info
-    # Output at a decent log level
     v: 4
     # Cordon nodes before terminating them so new pods are not scheduled there
     cordon-node-before-terminating: "true"
-    # When scaling up, choose the node group that will result in the least idle CPU after
+    # When scaling up, pick the node group with the least idle CPU after
     expander: least-waste,random
-    # Allow pods in kube-system to prevent a node from being deleted
+    # Runaway guardrails (see doc comment above):
+    ok-total-unready-count: "3"
+    max-total-unready-percentage: "30"
+    # Scale-down policy: leave a node idle for 10 min at <25% CPU AND memory
+    # before removing it. Prevents churn on bursty workloads.
+    scale-down-utilization-threshold: "0.25"
+    scale-down-unneeded-time: "10m"
+    scale-down-delay-after-add: "10m"
+    scale-down-delay-after-delete: "10s"
+    scale-down-delay-after-failure: "3m"
+    # How often the loop runs
+    scan-interval: "30s"
+    # Don't evict pods without ownerRef (bare Pods) or pods in kube-system
+    # that would otherwise trigger a scale-down cascade
     skip-nodes-with-system-pods: "true"
-    # Allow pods with emptyDirs to be evicted
+    # Do evict pods with emptyDir volumes and custom-controller pods —
+    # they are common in tenant workloads and blocking on them would
+    # freeze scale-down entirely.
     skip-nodes-with-local-storage: "false"
-    # Allow pods with custom controllers to be evicted
     skip-nodes-with-custom-controller-pods: "false"
 
   # Pod-level security context
