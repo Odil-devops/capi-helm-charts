@@ -39,6 +39,16 @@ stringData:
       typhaMetricsPort: 9093
       calicoNetwork:
         bgp: Disabled
+        # Pin MTU to underlay-MTU minus 50 (VXLAN header overhead). On
+        # OpenStack Neutron overlay networks the VM NIC MTU is 1450, so
+        # 1400 is the correct pod MTU. Auto-detect otherwise reads 1500
+        # from the VM NIC (physical assumption) and sets pod MTU 1450,
+        # which silently drops the large TLS/gRPC handshake frames that
+        # konnectivity-agent and calico-apiserver both need. Symptom is
+        # konnectivity-agent /readyz staying 503 forever and the
+        # projectcalico.org/v3 APIService in FailedDiscoveryCheck.
+        # Override via cni.calico.mtu; 1400 is a safe cross-cloud default.
+        mtu: {{ .Values.cni.calico.mtu | default 1400 }}
         nodeAddressAutodetectionV4:
           kubernetes: NodeInternalIP
         ipPools:

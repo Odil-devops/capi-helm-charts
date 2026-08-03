@@ -18,6 +18,11 @@ cni:
   # Settings for the calico CNI
   # See https://projectcalico.docs.tigera.io/getting-started/kubernetes/helm
   calico:
+    # Pod-network MTU. Must be <= underlay-MTU - VXLAN overhead (50).
+    # OpenStack Neutron overlay networks default to VM NIC MTU 1450 → 1400.
+    # Bare-metal or SR-IOV where VMs have 1500 → 1450.
+    # Leave the default unless you have measured MTU on the workload node.
+    mtu: 1400
     chart:
       repo: https://projectcalico.docs.tigera.io/charts
       name: tigera-operator
