@@ -104,3 +104,8 @@ addons:
   cni:
     # Same rule as openstack.controlPlaneOnly — no CP nodes on tenant.
     controlPlaneOnly: false
+
+  # HCP mode: tenant etcd runs on the mgmt cluster (CAPHCP-managed).
+  # The etcd-defrag CronJob has no local etcd to talk to on workers — skip.
+  etcdDefrag:
+    skipInHCPMode: true
