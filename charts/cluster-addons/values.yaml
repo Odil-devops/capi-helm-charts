@@ -207,6 +207,12 @@ reloader:
 etcdDefrag:
   # Indicates if the etcd defragmentation job should be enabled
   enabled: true
+  # If true, do NOT render the etcd-defrag HelmRelease. Meant for HCP-mode
+  # clusters where tenant etcd lives on the management cluster (managed by
+  # CAPHCP), not on workload nodes — the etcd-defrag CronJob has nothing to
+  # talk to. The parent openstack-cluster chart auto-sets this to true when
+  # controlPlane.provider=hostedControlPlane.
+  skipInHCPMode: false
   chart:
     repo: https://azimuth-cloud.github.io/capi-helm-charts
     name: etcd-defrag
