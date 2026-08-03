@@ -1,0 +1,32 @@
+apiVersion: v1
+entries:
+  cluster-addons:
+  - apiVersion: v2
+    appVersion: main
+    created: "2026-08-03T11:04:23.16499+05:00"
+    description: Helm chart that deploys cluster addons for a CAPI cluster.
+    digest: e15a839dd514f01d20a717fbd5cf892ab8b72f4114c60872df0d45770f46a5ee
+    name: cluster-addons
+    type: application
+    urls:
+    - https://odil-devops.github.io/capi-helm-charts/cluster-addons-0.20.0-hcp.1.tgz
+    version: 0.20.0-hcp.1
+  openstack-cluster:
+  - apiVersion: v2
+    appVersion: main
+    created: "2026-08-03T11:04:23.167986+05:00"
+    dependencies:
+    - alias: addons
+      condition: addons.enabled
+      name: cluster-addons
+      repository: file://../cluster-addons
+      version: 0.20.0-hcp.1
+    description: Helm chart for deploying a cluster on an OpenStack cloud using Cluster
+      API.
+    digest: 6e81d0d95bf7d4f9d9833ec9974650529afc76e3080f082a73c2a5151ff20f72
+    name: openstack-cluster
+    type: application
+    urls:
+    - https://odil-devops.github.io/capi-helm-charts/openstack-cluster-0.20.0-hcp.1.tgz
+    version: 0.20.0-hcp.1
+generated: "2026-08-03T11:04:23.157268+05:00"
