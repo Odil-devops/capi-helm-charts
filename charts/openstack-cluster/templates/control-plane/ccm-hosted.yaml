@@ -16,15 +16,20 @@ metadata:
   name: {{ $cluster }}-cloud-config-mgmt
   namespace: {{ .Release.Namespace }}
   labels: {{ include "openstack-cluster.componentLabels" (list . "openstack-ccm") | nindent 4 }}
-  # Ties this ConfigMap's lifecycle to the Cluster resource. `kubectl delete
-  # cluster tenant-N` cascades through here so we don't leak mgmt-side state.
+  {{- $clusterObj := lookup "cluster.x-k8s.io/v1beta1" "Cluster" .Release.Namespace $cluster }}
+  {{- if $clusterObj }}
+  # Cascade delete when the Cluster resource goes away. Only set after the
+  # Cluster is reconciled and has a uid — first-install renders skip this
+  # block; the CCM Deployment is a post-install hook (see below) that
+  # re-renders after the Cluster exists.
   ownerReferences:
     - apiVersion: cluster.x-k8s.io/v1beta1
       kind: Cluster
       name: {{ $cluster }}
-      uid: {{ (lookup "cluster.x-k8s.io/v1beta1" "Cluster" .Release.Namespace $cluster).metadata.uid }}
+      uid: {{ $clusterObj.metadata.uid }}
       controller: false
       blockOwnerDeletion: false
+  {{- end }}
 data:
   cloud.conf: |
     [Global]
@@ -51,15 +56,17 @@ metadata:
   name: {{ $cluster }}-openstack-ccm
   namespace: {{ .Release.Namespace }}
   labels: {{ include "openstack-cluster.componentLabels" (list . "openstack-ccm") | nindent 4 }}
-  # Cascade delete this Deployment when the Cluster goes away, matching how
-  # CAPI cascades the CAPHCP-owned HCP pods and the CAPO OpenStackCluster.
+  {{- $clusterObj2 := lookup "cluster.x-k8s.io/v1beta1" "Cluster" .Release.Namespace $cluster }}
+  {{- if $clusterObj2 }}
+  # See note on the ConfigMap above. Cluster uid unavailable on first install.
   ownerReferences:
     - apiVersion: cluster.x-k8s.io/v1beta1
       kind: Cluster
       name: {{ $cluster }}
-      uid: {{ (lookup "cluster.x-k8s.io/v1beta1" "Cluster" .Release.Namespace $cluster).metadata.uid }}
+      uid: {{ $clusterObj2.metadata.uid }}
       controller: false
       blockOwnerDeletion: false
+  {{- end }}
 spec:
   replicas: {{ $ccm.replicas }}
   strategy:
