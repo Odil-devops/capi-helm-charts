@@ -1,0 +1,60 @@
+name: Release HCP charts
+
+# Package and publish the openstack-cluster + cluster-addons charts to a
+# helm repo hosted on GitHub Pages. Triggered on tags of the form
+# hcp-vX.Y.Z (chart release cadence independent from upstream tags).
+#
+# Consumer usage:
+#   helm repo add wahda-mkaas https://odil-devops.github.io/capi-helm-charts
+#   helm repo update
+#   helm install my-cluster wahda-mkaas/openstack-cluster \
+#     --version 0.1.0-hcp -f values.yaml
+
+on:
+  push:
+    tags:
+      - 'hcp-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name  "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Resolve chart dependencies (openstack-cluster -> cluster-addons)
+        run: helm dependency update charts/openstack-cluster
+
+      - name: Package charts
+        run: |
+          mkdir -p .cr-release-packages
+          helm package charts/cluster-addons     -d .cr-release-packages
+          helm package charts/openstack-cluster  -d .cr-release-packages
+          ls -la .cr-release-packages
+
+      - name: Publish via chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: charts
+          skip_packaging: true
+          packages_with_index: true
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CR_SKIP_EXISTING: 'true'
