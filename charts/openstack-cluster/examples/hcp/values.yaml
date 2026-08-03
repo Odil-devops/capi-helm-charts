@@ -1,0 +1,106 @@
+# Sample values for HCP-mode (hosted control plane) install.
+#
+# This values file drives the openstack-cluster chart in a mode where
+# the tenant control plane runs as pods on the management cluster
+# (via CAPHCP) instead of dedicated VMs. It matches how AWS EKS, GCP
+# GKE, Azure AKS and Red Hat HyperShift expose managed Kubernetes:
+# customers see only their worker nodes.
+#
+# Fill in the CHANGEME markers. Every other default is sensible for a
+# production install; override individual keys as needed.
+
+# The Kubernetes version to install. Must exactly match the kube_version
+# property of the Glance image referenced by machineImageId below.
+kubernetesVersion: v1.34.9
+
+# Glance image ID (uuid) — CHANGEME.
+# Must be a kube-image built by kubernetes-sigs/image-builder for the
+# `kubernetesVersion` above, uploaded to the tenant OpenStack project.
+machineImageId: CHANGEME-glance-image-uuid
+
+# CHANGEME — name of a Secret on the mgmt cluster that holds a
+# `clouds.yaml` for the tenant's OpenStack project (application credential).
+# The chart does not render this Secret itself; create it before install.
+cloudCredentialsSecretName: CHANGEME-cluster-cloud-credentials
+
+controlPlane:
+  # HCP mode — control plane runs on the mgmt cluster, not as tenant VMs.
+  provider: hostedControlPlane
+
+  hostedControlPlane:
+    # apiserver replicas on the mgmt cluster.
+    # 1 for dev/PoC; use 3 (with a 3-node etcd) for production.
+    replicas: 1
+
+    # Reference to the TLS-passthrough Gateway on the mgmt cluster that
+    # accepts the public SNI traffic and routes it to this cluster's
+    # HCP apiserver Service.
+    gateway:
+      name: hcp-gateway
+      namespace: envoy-gateway-system
+
+    # OpenStack Cloud Controller Manager runs alongside the HCP pods on
+    # the mgmt cluster (EKS/AKS pattern; NOT on customer workers).
+    ccm:
+      cloudConfig:
+        loadBalancer:
+          # Set true if your tenant network does not have external reachability
+          # and every type=LoadBalancer Service should get an internal VIP.
+          # Set false to allocate a Floating IP for each Service (requires
+          # floatingNetworkId below).
+          internalLB: false
+          # floatingNetworkId:  # uuid of the tenant's external network
+
+  # Required by upstream chart validation even in HCP mode (never rendered
+  # because CP-VM templates are guarded out for provider=hostedControlPlane).
+  machineFlavor: m1.medium
+
+# Tenant OpenStack networking. CHANGEME uuids for the tenant project.
+clusterNetworking:
+  internalNetwork:
+    networkFilter:
+      id: CHANGEME-tenant-network-uuid
+    subnetFilter:
+      id: CHANGEME-tenant-subnet-uuid
+  # External network (used for FIPs, if enabled).
+  externalNetworkId: CHANGEME-external-network-uuid
+  manageSecurityGroups: true
+  allowAllInClusterTraffic: true
+
+# Defaults inherited by every entry in nodeGroups[] below.
+nodeGroupDefaults:
+  machineFlavor: m1.medium
+  machineImageId: CHANGEME-glance-image-uuid
+
+# Worker node groups. Add more entries for heterogeneous pools
+# (GPU pool, memory-optimised pool, etc.).
+nodeGroups:
+  - name: workers
+    autoscale: true
+    machineCountMin: 1
+    machineCountMax: 5
+
+autoscaler:
+  # Cluster autoscaler runs on the mgmt cluster (via CAPI provider mode)
+  # and scales this cluster's MachineDeployment(s) by watching Pending
+  # pods with reason "Insufficient resources". Guardrails against
+  # runaway from broken addons are built into the chart defaults; do
+  # not override extraArgs unless you know what you are doing.
+  enabled: true
+
+addons:
+  enabled: true
+
+  openstack:
+    enabled: true
+    # HCP mode has no CP nodes on the tenant cluster; addons must
+    # schedule on workers. Both flags below are required.
+    controlPlaneOnly: false
+    ccm:
+      # Suppress the workload-side CCM DaemonSet — this chart renders
+      # the CCM on the mgmt cluster instead.
+      hosted: true
+
+  cni:
+    # Same rule as openstack.controlPlaneOnly — no CP nodes on tenant.
+    controlPlaneOnly: false
