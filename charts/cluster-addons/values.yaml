@@ -15,6 +15,15 @@ cni:
   # for HCP-mode clusters where the workload has no CP nodes — the operator
   # then schedules on worker nodes.
   controlPlaneOnly: true
+  # HCP-mode compatibility gate. When true, this chart ships an additive
+  # NetworkPolicy allowing UDP:53 ingress to CoreDNS pods, working around a
+  # CAPHCP v1.7.2 bug where its managed coredns NetworkPolicy only allows
+  # TCP:53 ingress — which silently drops every UDP DNS query in the
+  # workload cluster and makes konnectivity-agent hang forever on FQDN
+  # resolution. The parent openstack-cluster chart auto-sets this to true
+  # when controlPlane.provider=hostedControlPlane.
+  hostedControlPlane:
+    enabled: false
   # Settings for the calico CNI
   # See https://projectcalico.docs.tigera.io/getting-started/kubernetes/helm
   calico:
