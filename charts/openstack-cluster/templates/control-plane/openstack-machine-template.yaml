@@ -14,7 +14,12 @@ template:
     identityRef:
       name: {{ include "openstack-cluster.cloudCredentialsSecretName" . }}
       cloudName: openstack
-    flavor: {{ .Values.controlPlane.machineFlavor | required ".Values.controlPlane.machineFlavor is required" | quote }}
+    {{- $flavor := .Values.controlPlane.machineFlavor | required ".Values.controlPlane.machineFlavor is required" }}
+    {{- if regexMatch "^[0-9]+$" (toString $flavor) }}
+    flavorID: {{ $flavor | quote }}
+    {{- else }}
+    flavor: {{ $flavor | quote }}
+    {{- end }}
     {{- with .Values.machineSSHKeyName }}
     sshKeyName: {{ . }}
     {{- end }}
