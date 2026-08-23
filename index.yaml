@@ -3,7 +3,17 @@ entries:
   cluster-addons:
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.567406+05:00"
+    created: "2026-08-24T00:25:18.817544+05:00"
+    description: Helm chart that deploys cluster addons for a CAPI cluster.
+    digest: 4fcba074d863ed0b9e288a793d48d00ec9eaab2067a94641fe6d3898d5e9fb5b
+    name: cluster-addons
+    type: application
+    urls:
+    - https://odil-devops.github.io/capi-helm-charts/cluster-addons-0.20.0-hcp.6.tgz
+    version: 0.20.0-hcp.6
+  - apiVersion: v2
+    appVersion: main
+    created: "2026-08-24T00:25:18.816369+05:00"
     description: Helm chart that deploys cluster addons for a CAPI cluster.
     digest: 4e58c13b47f5081b7780ada90a29ff058e989d047f2bef84b703afdccfa61a08
     name: cluster-addons
@@ -13,7 +23,7 @@ entries:
     version: 0.20.0-hcp.5
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.566077+05:00"
+    created: "2026-08-24T00:25:18.814859+05:00"
     description: Helm chart that deploys cluster addons for a CAPI cluster.
     digest: fa817ce22cedecd2a9ace9cd125c0553c8fde84cb78099a4cf0ce82e61a5403b
     name: cluster-addons
@@ -23,7 +33,7 @@ entries:
     version: 0.20.0-hcp.4
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.565009+05:00"
+    created: "2026-08-24T00:25:18.81326+05:00"
     description: Helm chart that deploys cluster addons for a CAPI cluster.
     digest: ca39d56588c48d8554b5cb06c7d39d184203f4c118d0dc5a68a37cfe889c3e16
     name: cluster-addons
@@ -33,7 +43,7 @@ entries:
     version: 0.20.0-hcp.3
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.563862+05:00"
+    created: "2026-08-24T00:25:18.810664+05:00"
     description: Helm chart that deploys cluster addons for a CAPI cluster.
     digest: 9c69c83d6acb56d6d418c56ec5cdfd9b95d0a62ab959e78b2f949a27ac003999
     name: cluster-addons
@@ -43,7 +53,7 @@ entries:
     version: 0.20.0-hcp.2
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.562225+05:00"
+    created: "2026-08-24T00:25:18.809466+05:00"
     description: Helm chart that deploys cluster addons for a CAPI cluster.
     digest: e15a839dd514f01d20a717fbd5cf892ab8b72f4114c60872df0d45770f46a5ee
     name: cluster-addons
@@ -54,7 +64,24 @@ entries:
   openstack-cluster:
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.578006+05:00"
+    created: "2026-08-24T00:25:18.830963+05:00"
+    dependencies:
+    - alias: addons
+      condition: addons.enabled
+      name: cluster-addons
+      repository: file://../cluster-addons
+      version: 0.20.0-hcp.6
+    description: Helm chart for deploying a cluster on an OpenStack cloud using Cluster
+      API.
+    digest: 63217841a1b04934800a4f27291f632c288b6ad36436f0c1d7e89a4a88430ce1
+    name: openstack-cluster
+    type: application
+    urls:
+    - https://odil-devops.github.io/capi-helm-charts/openstack-cluster-0.20.0-hcp.6.tgz
+    version: 0.20.0-hcp.6
+  - apiVersion: v2
+    appVersion: main
+    created: "2026-08-24T00:25:18.829015+05:00"
     dependencies:
     - alias: addons
       condition: addons.enabled
@@ -71,7 +98,7 @@ entries:
     version: 0.20.0-hcp.5
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.575878+05:00"
+    created: "2026-08-24T00:25:18.826651+05:00"
     dependencies:
     - alias: addons
       condition: addons.enabled
@@ -88,7 +115,7 @@ entries:
     version: 0.20.0-hcp.4
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.573935+05:00"
+    created: "2026-08-24T00:25:18.824279+05:00"
     dependencies:
     - alias: addons
       condition: addons.enabled
@@ -105,7 +132,7 @@ entries:
     version: 0.20.0-hcp.3
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.571506+05:00"
+    created: "2026-08-24T00:25:18.822034+05:00"
     dependencies:
     - alias: addons
       condition: addons.enabled
@@ -122,7 +149,7 @@ entries:
     version: 0.20.0-hcp.2
   - apiVersion: v2
     appVersion: main
-    created: "2026-08-23T23:31:28.569689+05:00"
+    created: "2026-08-24T00:25:18.820058+05:00"
     dependencies:
     - alias: addons
       condition: addons.enabled
@@ -137,4 +164,4 @@ entries:
     urls:
     - https://odil-devops.github.io/capi-helm-charts/openstack-cluster-0.20.0-hcp.1.tgz
     version: 0.20.0-hcp.1
-generated: "2026-08-23T23:31:28.560218+05:00"
+generated: "2026-08-24T00:25:18.806807+05:00"
