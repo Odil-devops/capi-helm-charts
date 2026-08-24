@@ -119,18 +119,28 @@ clusterNetworking:
 #   8083 docker.io | 8084 quay.io | 8085 ghcr.io | 8086 registry.k8s.io | 8087 nvcr.io
 # Nexus proxies also cover k8s.gcr.io (redirect to registry.k8s.io upstream).
 registryMirrors:
+  # Wahda in-region Nexus proxy fronted by mkaas-nginx SNI splitter.
+  # overridePath: false — Nexus is a standard docker v2 endpoint expecting
+  # /v2/<image>/... The chart's default (true) is for azimuth path-style
+  # mirrors, which our Nexus doesn't understand. See docs/NEXUS-INTEGRATION.md.
   docker.io:
-    - url: http://10.121.50.22:8083
+    - url: https://dockerhub.registry.thewahda.com
+      overridePath: false
   quay.io:
-    - url: http://10.121.50.22:8084
+    - url: https://quay.registry.thewahda.com
+      overridePath: false
   ghcr.io:
-    - url: http://10.121.50.22:8085
+    - url: https://ghcr.registry.thewahda.com
+      overridePath: false
   registry.k8s.io:
-    - url: http://10.121.50.22:8086
+    - url: https://k8s.registry.thewahda.com
+      overridePath: false
   k8s.gcr.io:
-    - url: http://10.121.50.22:8086
+    - url: https://k8s.registry.thewahda.com
+      overridePath: false
   nvcr.io:
-    - url: http://10.121.50.22:8087
+    - url: https://nvcr.registry.thewahda.com
+      overridePath: false
 
 # A map of trusted CAs to add to the system trust on cluster nodes
 trustedCAs: {}
